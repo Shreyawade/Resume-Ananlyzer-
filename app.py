@@ -4,7 +4,6 @@ import json
 import time
 import re
 from io import BytesIO
-# ❌ removed: from groq import Groq
 
 # ─────────────────────────────────────────────
 #  PAGE CONFIG
@@ -15,8 +14,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-# (ALL YOUR CSS + UI CODE SAME — NOT TOUCHED)
 
 # ─────────────────────────────────────────────
 #  HELPERS
@@ -34,7 +31,7 @@ def extract_text_from_pdf(uploaded_file) -> str:
     return text.strip()
 
 
-# ✅ REPLACED FUNCTION (NO API USED)
+# ✅ DUMMY ANALYSIS (REPLACED GROQ ONLY)
 def analyze_resumes_with_groq(resumes: dict, job_description: str, api_key: str) -> dict:
     candidates = []
 
@@ -81,7 +78,7 @@ def rank_emoji(rank: int) -> str:
 # ─────────────────────────────────────────────
 #  SIDEBAR
 # ─────────────────────────────────────────────
-api_key = "demo"   # ✅ replaced (no API required)
+api_key = "demo"
 
 with st.sidebar:
     st.markdown("## 📤 Upload Resumes")
@@ -91,17 +88,28 @@ with st.sidebar:
         accept_multiple_files=True,
     )
 
-# (REST OF YOUR CODE EXACTLY SAME — NO CHANGE)
+
+# ─────────────────────────────────────────────
+#  MAIN CONTENT
+# ─────────────────────────────────────────────
+st.title("🎯 AI Resume Analyzer")
+
+job_description = st.text_area(
+    "📋 Job Description",
+    height=200
+)
+
+# ✅ FIXED BUTTON (IMPORTANT)
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    analyze_btn = st.button("🚀 Analyze Resumes with AI", use_container_width=True)
+
 
 # ─────────────────────────────────────────────
 #  ANALYSIS
 # ─────────────────────────────────────────────
 if analyze_btn:
     errors = []
-
-    # ❌ removed API validation
-    # if not api_key:
-    #     errors.append("❌ Please enter your Groq API key in the sidebar.")
 
     if not uploaded_files or not (3 <= len(uploaded_files) <= 5):
         errors.append("❌ Please upload between 3 and 5 PDF resumes.")
@@ -127,3 +135,23 @@ if analyze_btn:
             result = analyze_resumes_with_groq(resumes, job_description, api_key)
 
         st.success("✅ Analysis complete!")
+
+        candidates = result.get("ranked_candidates", [])
+
+        for cand in candidates:
+            st.subheader(f"{cand['rank']}️⃣ {cand['name']}")
+            st.write(f"Score: {cand['overall_score']}%")
+            st.write(f"Match: {cand['match_level']}")
+
+            st.write("✅ Matched Skills:", cand["matched_skills"])
+            st.write("❌ Missing Skills:", cand["missing_skills"])
+
+            st.write("💪 Strengths:")
+            for s in cand["strengths"]:
+                st.write("-", s)
+
+            st.write("💡 Improvements:")
+            for s in cand["improvement_suggestions"]:
+                st.write("-", s)
+
+            st.markdown("---")
