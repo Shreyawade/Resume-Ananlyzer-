@@ -16,6 +16,33 @@ st.set_page_config(
 )
 
 # ─────────────────────────────────────────────
+#  CUSTOM CSS (RESTORED)
+# ─────────────────────────────────────────────
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+
+.stApp {
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    color: #f0f0f0;
+}
+
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.card {
+    background: rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────
 #  HELPERS
 # ─────────────────────────────────────────────
 def extract_text_from_pdf(uploaded_file) -> str:
@@ -31,7 +58,7 @@ def extract_text_from_pdf(uploaded_file) -> str:
     return text.strip()
 
 
-# ✅ DUMMY ANALYSIS (REPLACED GROQ ONLY)
+# ✅ DUMMY ANALYSIS (API REMOVED ONLY)
 def analyze_resumes_with_groq(resumes: dict, job_description: str, api_key: str) -> dict:
     candidates = []
 
@@ -39,18 +66,14 @@ def analyze_resumes_with_groq(resumes: dict, job_description: str, api_key: str)
         candidates.append({
             "rank": idx,
             "name": name,
-            "overall_score": 70,
+            "overall_score": 75,
             "match_level": "Good",
             "matched_skills": ["Python", "Problem Solving"],
-            "missing_skills": ["AWS", "Docker"],
+            "missing_skills": ["AWS"],
             "experience_match": "Basic match",
             "education_match": "Meets requirements",
-            "strengths": ["Clean resume", "Relevant keywords"],
-            "improvement_suggestions": [
-                "Add more projects",
-                "Use strong action verbs",
-                "Include measurable achievements"
-            ]
+            "strengths": ["Well formatted resume"],
+            "improvement_suggestions": ["Add projects", "Improve keywords"]
         })
 
     return {
@@ -58,21 +81,6 @@ def analyze_resumes_with_groq(resumes: dict, job_description: str, api_key: str)
         "summary": "Demo analysis (AI disabled).",
         "top_recommendation": candidates[0]["name"] if candidates else ""
     }
-
-
-def score_color(score: int) -> str:
-    if score >= 80: return "#48c78e"
-    if score >= 60: return "#64b5f6"
-    if score >= 40: return "#ffb74d"
-    return "#ff6464"
-
-def pill_class(match_level: str) -> str:
-    mapping = {"Excellent": "pill-excellent", "Good": "pill-good",
-               "Average": "pill-average", "Weak": "pill-weak"}
-    return mapping.get(match_level, "pill-average")
-
-def rank_emoji(rank: int) -> str:
-    return {1: "🥇", 2: "🥈", 3: "🥉"}.get(rank, f"#{rank}")
 
 
 # ─────────────────────────────────────────────
@@ -88,22 +96,24 @@ with st.sidebar:
         accept_multiple_files=True,
     )
 
-
 # ─────────────────────────────────────────────
-#  MAIN CONTENT
+#  MAIN CONTENT (RESTORED)
 # ─────────────────────────────────────────────
-st.title("🎯 AI Resume Analyzer")
+st.markdown("""
+<div class="hero-banner">
+  <h1>🎯 AI Resume Analyzer</h1>
+  <p>Upload resumes · Get instant analysis</p>
+</div>
+""", unsafe_allow_html=True)
 
 job_description = st.text_area(
     "📋 Job Description",
     height=200
 )
 
-# ✅ FIXED BUTTON (IMPORTANT)
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     analyze_btn = st.button("🚀 Analyze Resumes with AI", use_container_width=True)
-
 
 # ─────────────────────────────────────────────
 #  ANALYSIS
@@ -112,46 +122,29 @@ if analyze_btn:
     errors = []
 
     if not uploaded_files or not (3 <= len(uploaded_files) <= 5):
-        errors.append("❌ Please upload between 3 and 5 PDF resumes.")
+        errors.append("❌ Upload 3–5 resumes")
     if not job_description.strip():
-        errors.append("❌ Please enter a job description.")
+        errors.append("❌ Enter job description")
 
     if errors:
         for e in errors:
             st.error(e)
     else:
-        with st.spinner("📄 Reading PDF resumes..."):
+        with st.spinner("Reading resumes..."):
             resumes = {}
-            progress = st.progress(0)
-            for i, f in enumerate(uploaded_files):
+            for f in uploaded_files:
                 f.seek(0)
-                text = extract_text_from_pdf(f)
-                resumes[f.name] = text if text else f"[Could not extract text from {f.name}]"
-                progress.progress((i + 1) / len(uploaded_files))
-            time.sleep(0.3)
-            progress.empty()
+                resumes[f.name] = extract_text_from_pdf(f)
 
-        with st.spinner("⚡Analyzing resumes (Demo mode)..."):
-            result = analyze_resumes_with_groq(resumes, job_description, api_key)
+        result = analyze_resumes_with_groq(resumes, job_description, api_key)
 
         st.success("✅ Analysis complete!")
 
-        candidates = result.get("ranked_candidates", [])
-
-        for cand in candidates:
-            st.subheader(f"{cand['rank']}️⃣ {cand['name']}")
-            st.write(f"Score: {cand['overall_score']}%")
-            st.write(f"Match: {cand['match_level']}")
-
-            st.write("✅ Matched Skills:", cand["matched_skills"])
-            st.write("❌ Missing Skills:", cand["missing_skills"])
-
-            st.write("💪 Strengths:")
-            for s in cand["strengths"]:
-                st.write("-", s)
-
-            st.write("💡 Improvements:")
-            for s in cand["improvement_suggestions"]:
-                st.write("-", s)
-
-            st.markdown("---")
+        for cand in result["ranked_candidates"]:
+            st.markdown(f"""
+            <div class="card">
+                <h3>{cand['rank']}️⃣ {cand['name']}</h3>
+                <p><b>Score:</b> {cand['overall_score']}%</p>
+                <p><b>Match:</b> {cand['match_level']}</p>
+            </div>
+            """, unsafe_allow_html=True)
